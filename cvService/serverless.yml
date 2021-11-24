@@ -1,0 +1,85 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: cvservice
+# app and org for use with dashboard.serverless.com
+app: my-python-rest-api-app
+org: mamun
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: python3.8
+  lambdaHashingVersion: 20201221
+
+  # you can overwrite defaults here
+  stage: dev
+  region: ap-southeast-1
+  endpointType: REGIONAL
+  iam:
+    role: arn:aws:iam::940443069190:role/dynamo_db_and_lambda_fullaccess
+
+
+functions:
+  careertutor-cv-upload-service:
+    name: careertutor-cv-upload
+    handler: get_signed_url.lambda_handler
+    description: get image signed url for s3 upload
+    events:
+      - http:
+          path: /
+          method: get
+          cors: true
+
+  save-user-contact-information:
+    name: save-user-contact-information
+    handler: handler.lambda_handler
+    description: save user feedback on dynamodb
+    events:
+      - http:
+          path: /
+          method: post
+          cors: true
+
+  send-email-service:
+    name: send_email_notification
+    handler: send_email.lambda_handler
+    description: send email
+    events:
+      - existingDynamoStream:
+          tableName: usersTable
+          streamType: NEW_IMAGE
+          startingPosition: LATEST
+
+
+
+
+resources:
+  Resources:
+    usersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: usersTable
+        AttributeDefinitions:
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: email
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
